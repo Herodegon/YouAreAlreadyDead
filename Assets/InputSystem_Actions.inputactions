@@ -8,12 +8,12 @@
             "actions": [
                 {
                     "name": "Type",
-                    "type": "Button",
+                    "type": "Value",
                     "id": "b713ee3f-3327-428d-89e4-97e8f78d7823",
-                    "expectedControlType": "",
+                    "expectedControlType": "Integer",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
