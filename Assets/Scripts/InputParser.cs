@@ -58,7 +58,7 @@ public class InputParser : MonoBehaviour
             string name = names[Random.Range(0, names.Count)];
             //string belonging = belongings[Random.Range(0, belongings.Count)];
             string belonging = "car";
-            if (i == numberOfRelationships - 1)
+            if (i > numberOfRelationships - 3)
             {
                 belonging = belongings[Random.Range(0, belongings.Count)];
             }
@@ -72,7 +72,6 @@ public class InputParser : MonoBehaviour
         willSequence = value.Trim().ToLower().Split(' ').ToList();
         for (int i = 0; i < willSequence.Count; i++)
         {
-            Debug.Log("Number of Objectives: " + objectivesInterface.objectives.Count);
             for (int j = 0; j < objectivesInterface.objectives.Count; j++)
             {
                 if (i == 0)

@@ -1612,8 +1612,8 @@ MonoBehaviour:
   objectivesInterface: {fileID: 2128974621}
   namesFile: {fileID: 4900000, guid: fd7f2a9f3cde1db45aca8055149ab548, type: 3}
   belongingsFile: {fileID: 4900000, guid: 46afa38a453c4f546952839f07d7f425, type: 3}
-  minRelationships: 3
-  maxRelationships: 3
+  minRelationships: 6
+  maxRelationships: 6
 --- !u!1 &2128974619
 GameObject:
   m_ObjectHideFlags: 0
