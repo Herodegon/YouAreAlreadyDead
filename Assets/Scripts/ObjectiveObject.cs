@@ -1,8 +1,31 @@
 using UnityEngine;
 using TMPro;
 using System;
-using System.Collections.Generic;
-using System.Linq;
+
+public enum ObjectiveState
+{
+    INCOMPLETE,
+    PENDING,
+    BROKEN,
+    COMPLETE
+}
+
+public sealed class ObjectiveData
+{
+    public string[] HeirTokens { get; }
+    public string[] BelongingTokens { get; }
+    public ObjectiveState State { get; private set; }
+    public ObjectiveData(RelationshipData relationship)
+    {
+        HeirTokens = Tokenize(relationship.name);
+        BelongingTokens = Tokenize(relationship.belonging);
+    }
+    public void SetState(ObjectiveState state) => State = state;
+    public static string[] Tokenize(string text) => text
+        .ToLowerInvariant()
+        .Split(new[] { ' ', '\t', '\n', '\r', ',', '.', ';', ':', '"', '\'' },
+               StringSplitOptions.RemoveEmptyEntries);
+}
 
 public class ObjectiveObject : MonoBehaviour
 {
@@ -10,75 +33,68 @@ public class ObjectiveObject : MonoBehaviour
     [SerializeField] private TextMeshProUGUI belongingText;
     [SerializeField] private Color incompleteColor;
     [SerializeField] private Color completeColor;
-
-    public RelationshipData relationship;
-    public bool isNameWritten = false;
-    public bool isBelongingWritten = false;
-
-    private string nameTarget = "";
-    private List<string> belongingTargetSequence = new();
-    private int currentTargetIndex = 0;
+    [SerializeField] private Color brokenColor;
+    public ObjectiveData objectiveData;
 
     public event Action<GameObject> OnObjectiveComplete;
+    public event Action<GameObject> OnObjectiveUncomplete;
+    private bool hasReportedCompletion = false;
 
     public void Init(RelationshipData relationship)
     {
-        this.relationship = relationship;
+        objectiveData = new ObjectiveData(relationship);
         nameText.text = relationship.name;
         belongingText.text = relationship.belonging;
-        nameTarget = relationship.name.Trim().ToLower();
-        belongingTargetSequence = relationship.belonging.Trim().ToLower().Split(' ').ToList();
     }
 
     void LateUpdate()
     {
-        if (isNameWritten && isBelongingWritten)
+        switch (objectiveData.State)
         {
+            case ObjectiveState.INCOMPLETE:
+                if (nameText.color != incompleteColor || belongingText.color != incompleteColor)
+                {
+                    nameText.color = incompleteColor;
+                    belongingText.color = incompleteColor;
+                }
+                break;
+            case ObjectiveState.PENDING:
+                if (nameText.color != completeColor || belongingText.color != incompleteColor)
+                {
+                    nameText.color = completeColor;
+                    belongingText.color = incompleteColor;
+                }
+                break;
+            case ObjectiveState.BROKEN:
+                if (nameText.color != brokenColor || belongingText.color != incompleteColor)
+                {
+                    nameText.color = brokenColor;
+                    belongingText.color = incompleteColor;
+                }
+                break;
+            case ObjectiveState.COMPLETE:
+                if (nameText.color != completeColor || belongingText.color != completeColor)
+                {
+                    nameText.color = completeColor;
+                    belongingText.color = completeColor;
+                }
+                break;
+        }
+        CheckObjectiveCompletion();
+    }
+
+    private void CheckObjectiveCompletion()
+    {
+        bool isComplete = objectiveData.State == ObjectiveState.COMPLETE;
+        if (isComplete && !hasReportedCompletion)
+        {
+            hasReportedCompletion = true;
             OnObjectiveComplete?.Invoke(gameObject);
         }
-        
-        if (isNameWritten && nameText.color != completeColor)
+        else if (!isComplete && hasReportedCompletion)
         {
-            nameText.color = completeColor;
-        }
-
-        if (isBelongingWritten && belongingText.color != completeColor)
-        {
-            belongingText.color = completeColor;
-        }
-    }
-
-    public void Reset()
-    {
-        isNameWritten = false;
-        isBelongingWritten = false;
-        currentTargetIndex = 0;
-        nameText.color = incompleteColor;
-        belongingText.color = incompleteColor;
-    }
-
-    public void CheckName(string name)
-    {
-        if (name == nameTarget)
-        {
-            isNameWritten = true;
-        }
-    }
-
-    public void CheckBelonging(string nextBelongingWord)
-    {
-        if (nextBelongingWord == belongingTargetSequence[currentTargetIndex] && isNameWritten)
-        {
-            currentTargetIndex++;
-        }
-        else
-        {
-            currentTargetIndex = 0;
-        }
-
-        if (currentTargetIndex == belongingTargetSequence.Count)
-        {
-            isBelongingWritten = true;
+            hasReportedCompletion = false;
+            OnObjectiveUncomplete?.Invoke(gameObject);
         }
     }
 }

@@ -869,37 +869,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_ActionId: dad70c86-b58c-4b17-88ad-f5e53adf419e
---- !u!1 &1493593627
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1493593628}
-  m_Layer: 5
-  m_Name: CompletedContainer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1493593628
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1493593627}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2048, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1506748014
 GameObject:
   m_ObjectHideFlags: 0
@@ -1696,7 +1665,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   objectivePrefab: {fileID: 6146587130850030748, guid: e208f1839791d62478e2e821c7d6a776, type: 3}
   objectivesContainer: {fileID: 171537519}
-  completedObjectivesContainer: {fileID: 0}
   objectives: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -1706,4 +1674,3 @@ SceneRoots:
   - {fileID: 619394802}
   - {fileID: 2102967966}
   - {fileID: 1721005760}
-  - {fileID: 1493593628}

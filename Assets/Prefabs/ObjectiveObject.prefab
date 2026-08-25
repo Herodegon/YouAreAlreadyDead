@@ -63,8 +63,7 @@ MonoBehaviour:
   belongingText: {fileID: 1264878320076495147}
   incompleteColor: {r: 1, g: 1, b: 1, a: 1}
   completeColor: {r: 0.20198467, g: 0.8396226, b: 0.2276209, a: 1}
-  isNameWritten: 0
-  isBelongingWritten: 0
+  brokenColor: {r: 0.8627452, g: 0.07843138, b: 0.2352941, a: 1}
 --- !u!1 &2213595991640313431
 GameObject:
   m_ObjectHideFlags: 0

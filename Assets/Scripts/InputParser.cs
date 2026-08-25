@@ -26,25 +26,26 @@ public class InputParser : MonoBehaviour
     [SerializeField] private int minRelationships = 1;
     [SerializeField] private int maxRelationships = 10;
 
-    private List<string> names = new();
-    private List<string> belongings = new();
-    private List<RelationshipData> relationships = new();
-    private List<string> willSequence = new();
+    private readonly List<string> names = new();
+    private readonly List<string> belongings = new();
+    private readonly List<string> willSequence = new();
+
+    private readonly List<ObjectiveData> pendingObjectiveTokens = new();
 
     void Awake()
     {
-        names = namesFile.text.Trim().Split('\n').ToList();
-        belongings = belongingsFile.text.Trim().Split('\n').ToList();
+        names.AddRange(namesFile.text.Trim().Split('\n').ToList());
+        belongings.AddRange(belongingsFile.text.Trim().Split('\n').ToList());
 
         Debug.Log(names.Count);
         Debug.Log(belongings.Count);
 
-        willInterface.OnWhitespaceEntered += OnWillContentChanged;
+        willInterface.OnWillContentChanged += WillContentChanged;
     }
 
     void Update()
     {
-        if (relationships.Count == 0)
+        if (objectivesInterface.objectives.Count == 0)
         {
             GenerateRelationships();
         }
@@ -52,6 +53,7 @@ public class InputParser : MonoBehaviour
 
     private void GenerateRelationships()
     {
+        List<RelationshipData> relationships = new();
         int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
         for (int i = 0; i < numberOfRelationships; i++)
         {
@@ -67,20 +69,75 @@ public class InputParser : MonoBehaviour
         objectivesInterface.PopulateObjectives(relationships);
     }
 
-    private void OnWillContentChanged(string value)
+    private void WillContentChanged(string value)
     {
-        willSequence = value.Trim().ToLower().Split(' ').ToList();
+        pendingObjectiveTokens.Clear();
+        ResetObjectives();
+        willSequence.Clear();
+        willSequence.AddRange(value.ToLowerInvariant().Split(new[] { ' ', '\t', '\n', '\r', ',', '.', ';', ':', '"', '\'' },
+               System.StringSplitOptions.RemoveEmptyEntries));
+        ParseWillContents();
+    }
+
+    private void ResetObjectives()
+    {
+        foreach (var objective in objectivesInterface.objectives)
+        {
+            objective.objectiveData.SetState(ObjectiveState.INCOMPLETE);
+        }
+    }
+
+    private void ParseWillContents()
+    {
         for (int i = 0; i < willSequence.Count; i++)
         {
-            for (int j = 0; j < objectivesInterface.objectives.Count; j++)
+            foreach (var objective in objectivesInterface.objectives)
             {
-                if (i == 0)
-                {
-                    objectivesInterface.objectives[j].Reset();
-                }
-                objectivesInterface.objectives[j].CheckName(willSequence[i]);
-                objectivesInterface.objectives[j].CheckBelonging(willSequence[i]);
+                if (CheckForHeirToken(willSequence[i], objective.objectiveData)) break;
             }
+            if (pendingObjectiveTokens.Count > 0) CheckForBelongingToken(i);
         }
+    }
+
+    private bool CheckForHeirToken(string token, ObjectiveData objectiveData)
+    {
+        if (objectiveData.HeirTokens.Contains(token))
+        {
+            if (!pendingObjectiveTokens.Contains(objectiveData)) pendingObjectiveTokens.Add(objectiveData);
+            objectiveData.SetState(ObjectiveState.PENDING);
+            return true;
+        }
+        return false;
+    }
+
+    private void CheckForBelongingToken(int fromIndex)
+    {
+        bool objectiveCompleted = false;
+        for (int i = pendingObjectiveTokens.Count - 1; i >= 0; i--)
+        {
+            ObjectiveData objectiveData = pendingObjectiveTokens[i];
+            if (objectiveData.State == ObjectiveState.BROKEN) continue;
+            if (!MatchesAt(fromIndex, objectiveData.BelongingTokens))
+            {
+                continue;
+            }
+            objectiveData.SetState(ObjectiveState.COMPLETE);
+            pendingObjectiveTokens.RemoveAt(i);
+            objectiveCompleted = true;
+        }
+        if (objectiveCompleted)
+        {
+            pendingObjectiveTokens.ForEach(objectiveData => objectiveData.SetState(ObjectiveState.BROKEN));
+        }
+    }
+
+    private bool MatchesAt(int fromIndex, string[] phrase)
+    {
+        if (fromIndex + phrase.Length > willSequence.Count) return false;
+        for (int i = 0; i < phrase.Length; i++)
+        {
+            if (willSequence[fromIndex + i] != phrase[i]) return false;
+        }
+        return true;
     }
 }
