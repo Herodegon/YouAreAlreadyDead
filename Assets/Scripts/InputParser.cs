@@ -58,12 +58,7 @@ public class InputParser : MonoBehaviour
         for (int i = 0; i < numberOfRelationships; i++)
         {
             string name = names[Random.Range(0, names.Count)];
-            //string belonging = belongings[Random.Range(0, belongings.Count)];
-            string belonging = "car";
-            if (i > numberOfRelationships - 3)
-            {
-                belonging = belongings[Random.Range(0, belongings.Count)];
-            }
+            string belonging = belongings[Random.Range(0, belongings.Count)];
             relationships.Add(new RelationshipData(name, belonging));
         }
         objectivesInterface.PopulateObjectives(relationships);
