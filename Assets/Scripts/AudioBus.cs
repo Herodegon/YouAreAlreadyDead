@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+using Random = UnityEngine.Random;
+
 [System.Serializable]
 public class AudioSourceValue
 {
@@ -83,5 +85,17 @@ public class AudioBus : MonoBehaviour
                 source.Pause();
             }
         }
+    }
+
+    public bool IsPlaying(string name)
+    {
+        if (audioClips.TryGetValue(name, out AudioClipData data))
+        {
+            if (audioSources.TryGetValue(data.audioSourceName, out AudioSource source))
+            {
+                return source.isPlaying;
+            }
+        }
+        return false;
     }
 }

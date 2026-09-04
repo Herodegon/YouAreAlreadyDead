@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System;
+using System.Collections;
 
 public enum TrafficLightStates
 {
@@ -21,18 +22,20 @@ public class StartScreen : MonoBehaviour
 {
     [SerializeField] private GameObject titleContainer;
     [SerializeField] private GameObject willContainer;
+    [SerializeField] private GameObject buttonsContainer;
     [SerializeField] private Image trafficLightImage; 
     [SerializeField] private List<TrafficLightData> trafficLightData;
     [SerializeField] private Animator willAnimator;
 
     private static readonly int ReadyWillState = Animator.StringToHash("ReadyWill");
 
-    public event Action OnPlaySelect;
-    public event Action OnQuitSelect;
+    public event Action OnPlayGame;
+    public event Action OnQuitGame;
 
     public void OnEnable()
     {
         titleContainer.SetActive(true);
+        buttonsContainer.SetActive(true);
         willContainer.SetActive(false);
         ChangeTrafficLightState(TrafficLightStates.OFF);
     }
@@ -52,21 +55,9 @@ public class StartScreen : MonoBehaviour
         ChangeTrafficLightState(TrafficLightStates.GREEN);
     }
 
-    public void Button_ClickPlay()
-    {
-        titleContainer.SetActive(false);
-        willContainer.SetActive(true);
+    public void Button_ClickPlay() {StartCoroutine(RunPlayIntro());}
 
-        AudioBus.Instance.PlaySFX("car_crash");
-
-        willAnimator.Play(ReadyWillState, 0, 0f);
-        willAnimator.Update(0f);
-    }
-
-    public void Button_ClickQuit()
-    {
-        OnQuitSelect?.Invoke();
-    }
+    public void Button_ClickQuit() => OnQuitGame?.Invoke();
 
     public void ChangeTrafficLightState(TrafficLightStates newState)
     {
@@ -75,5 +66,28 @@ public class StartScreen : MonoBehaviour
         {
             trafficLightImage.sprite = data.sprite;
         }
+    }
+
+    private IEnumerator RunPlayIntro()
+    {
+        buttonsContainer.SetActive(false);
+        ChangeTrafficLightState(TrafficLightStates.GREEN);
+
+        AudioBus.Instance.PlaySFX("car_crash_1");
+        yield return null;
+        yield return new WaitUntil(() => !AudioBus.Instance.IsPlaying("car_crash_1"));
+
+        AudioBus.Instance.PlaySFX("car_crash_2");
+        titleContainer.SetActive(false);
+        Background.Instance.Flash(0.5f);
+        yield return null;
+        yield return new WaitUntil(() => !AudioBus.Instance.IsPlaying("car_crash_2"));
+
+        willContainer.SetActive(true);
+        willAnimator.Play(ReadyWillState, 0, 0f);
+        yield return null;
+        yield return new WaitUntil(() => willAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+
+        OnPlayGame?.Invoke();
     }
 }

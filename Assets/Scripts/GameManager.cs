@@ -4,8 +4,9 @@ using PrimeTween;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
+    [SerializeField] private Camera mainCamera;
 
+    [Header("Game Screens")]
     [SerializeField] private GameObject startScreen;
     [SerializeField] private GameObject gameScreen;
     [SerializeField] private GameObject endScreen;
@@ -21,8 +22,8 @@ public class GameManager : MonoBehaviour
         screens.Add(gameScreen);
         screens.Add(endScreen);
 
-        startScreen.GetComponent<StartScreen>().OnPlaySelect += OnGameStart;
-        startScreen.GetComponent<StartScreen>().OnQuitSelect += OnGameQuit;
+        startScreen.GetComponent<StartScreen>().OnPlayGame += OnGameStart;
+        startScreen.GetComponent<StartScreen>().OnQuitGame += OnGameQuit;
     }
 
     private void OnGameStart()
@@ -30,10 +31,12 @@ public class GameManager : MonoBehaviour
         SelectScreen(gameScreen);
         Timer.Instance.OnTimerComplete += OnGameEnd;
         Timer.Instance.SetTimer(gameDuration);
+        Background.Instance.FadeIn(gameDuration);
     }
 
     private void OnGameEnd()
     {
+        Background.Instance.Flash(0.5f);
         SelectScreen(endScreen);
         Timer.Instance.OnTimerComplete -= OnGameEnd;
     }
