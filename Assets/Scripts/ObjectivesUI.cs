@@ -21,6 +21,15 @@ public class ObjectivesUI : MonoBehaviour
         }
     }
 
+    public void ClearObjectives()
+    {
+        foreach (var objective in objectives)
+        {
+            Destroy(objective.gameObject);
+        }
+        objectives.Clear();
+    }
+
     private void OnObjectiveComplete(GameObject objectiveObject)
     {
         Debug.Log("Objective completed: " + objectiveObject.name);

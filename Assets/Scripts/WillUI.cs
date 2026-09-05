@@ -13,6 +13,8 @@ public class WillUI : MonoBehaviour
     [SerializeField] private float punchDuration = 0.15f;
     [SerializeField] private float punchFrequency = 15f;
 
+    public string WillText { get { return willInputField.text;}}
+
     private float inputDelayTimer = 0f;
     public bool isInputLocked = false;
 
@@ -20,10 +22,15 @@ public class WillUI : MonoBehaviour
 
     private Tween punchTween;
 
-    void Awake()
+    void OnEnable()
     {
         willInputField.onValueChanged.AddListener(OnValueChanged);
         willInputField.text = "";
+    }
+
+    void OnDisable()
+    {
+        willInputField.onValueChanged.RemoveListener(OnValueChanged);
     }
 
     void Update()

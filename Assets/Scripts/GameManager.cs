@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
-using PrimeTween;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,6 +10,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject startScreen;
     [SerializeField] private GameObject gameScreen;
     [SerializeField] private GameObject endScreen;
+    [SerializeField] private GameObject inputParser;
 
     [Header("Game Settings")]
     [SerializeField] private float gameDuration = 45f;
@@ -24,21 +25,34 @@ public class GameManager : MonoBehaviour
 
         startScreen.GetComponent<StartScreen>().OnPlayGame += OnGameStart;
         startScreen.GetComponent<StartScreen>().OnQuitGame += OnGameQuit;
+
+        inputParser.SetActive(false);
+        SelectScreen(startScreen);
     }
 
     private void OnGameStart()
     {
+        inputParser.SetActive(true);
+        inputParser.GetComponent<WillUI>().isInputLocked = false;
         SelectScreen(gameScreen);
+
         Timer.Instance.OnTimerComplete += OnGameEnd;
+        Timer.Instance.OnTimerComplete += inputParser.GetComponent<InputParser>().StopTimer;
+
         Timer.Instance.SetTimer(gameDuration);
         Background.Instance.FadeIn(gameDuration);
     }
 
     private void OnGameEnd()
     {
-        Background.Instance.Flash(0.5f);
-        SelectScreen(endScreen);
         Timer.Instance.OnTimerComplete -= OnGameEnd;
+        Timer.Instance.OnTimerComplete -= inputParser.GetComponent<InputParser>().StopTimer;
+        inputParser.GetComponent<WillUI>().isInputLocked = true;
+
+        AudioBus.Instance.PlaySFX("bell_toll");
+        Background.Instance.Flash(0.5f);
+
+        SelectScreen(endScreen);
     }
 
     private void OnGameQuit()

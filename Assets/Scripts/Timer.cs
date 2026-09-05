@@ -13,6 +13,8 @@ public class Timer : MonoBehaviour
 
     public event Action OnTimerComplete;
 
+    private float timer;
+    private int tollCount;
     private Tween scrollTween;
 
     void Awake()
@@ -20,11 +22,49 @@ public class Timer : MonoBehaviour
         Instance = this;
     }
 
+    void OnEnable()
+    {
+        ResetTimer();
+    }
+
+    void Update()
+    {
+        if (timer > 0f) timer -= Time.deltaTime;
+        BellTollStateMachine();
+    }
+
     public void SetTimer(float duration)
     {
         if (scrollTween.isAlive) scrollTween.Complete();
-        scrollTransform.position = startPoint.position;
+        ResetTimer();
+        timer = duration;
         scrollTween = Tween.PositionY(scrollTransform, endPoint.position.y, duration, ease: Ease.Linear)
         .OnComplete(() => OnTimerComplete?.Invoke());
+    }
+
+    private void BellTollStateMachine()
+    {
+        switch (tollCount)
+        {
+            case 0:
+                if (timer > 10f) return;
+                AudioBus.Instance.PlaySFX("bell_toll");
+                tollCount++;
+                break;
+            case 1:
+                if (timer > 5f) return;
+                AudioBus.Instance.PlaySFX("bell_toll");
+                tollCount++;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void ResetTimer()
+    {
+        timer = 0f;
+        tollCount = 0;
+        scrollTransform.position = startPoint.position;
     }
 }

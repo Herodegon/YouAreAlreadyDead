@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 public class AudioSourceValue
 {
     public string name;
-    public AudioSource source;
+    public AudioPool sourcePool;
 }
 
 [System.Serializable]
@@ -33,15 +33,18 @@ public class AudioBus : MonoBehaviour
 
     public List<AudioSourceValue> audioSourceValues = new();
     public List<AudioClipValue> audioClipValues = new();
-    private readonly Dictionary<string, AudioSource> audioSources = new();
+    private readonly Dictionary<string, AudioPool> audioPools = new();
     private readonly Dictionary<string, AudioClipData> audioClips = new();
+
+    private readonly Dictionary<string, AudioSource> activeSources = new();
+    private readonly List<string> finishedNames = new();
 
     void Awake()
     {
         Instance = this;
         foreach (var audioSourceValue in audioSourceValues)
         {
-            audioSources.Add(audioSourceValue.name, audioSourceValue.source);
+            audioPools.Add(audioSourceValue.name, audioSourceValue.sourcePool);
         }
         foreach (var audioClipValue in audioClipValues)
         {
@@ -49,53 +52,83 @@ public class AudioBus : MonoBehaviour
         }
     }
 
-    public void PlaySFX(string name)
+    void Update()
     {
-        if (audioClips.TryGetValue(name, out AudioClipData data))
+        finishedNames.Clear();
+        foreach (var pair in activeSources)
         {
-            if (audioSources.TryGetValue(data.audioSourceName, out AudioSource source))
+            if (pair.Value.clip == null)
             {
-                source.UnPause();
-                if (source.isPlaying) return;
-                int index = Random.Range(0, data.clips.Count);
-                source.volume = data.volume;
-                source.pitch = data.pitch + Random.Range(-data.pitchVariance, data.pitchVariance);
-                source.PlayOneShot(data.clips[index]);
+                finishedNames.Add(pair.Key);
             }
         }
+        foreach (var name in finishedNames)
+        {
+            activeSources.Remove(name);
+        }
+    }
+
+    public void PlaySFX(string name)
+    {
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
+        if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
+
+        if (activeSources.TryGetValue(name, out AudioSource active))
+        {
+            pool.ResumeAudioSource(active);
+            return;
+        }
+
+        AudioSource source = pool.GetAudioSource(data.audioSourceName);
+        if (source == null) return;
+
+        int index = Random.Range(0, data.clips.Count);
+        source.volume = data.volume;
+        source.pitch = data.pitch + Random.Range(-data.pitchVariance, data.pitchVariance);
+        pool.PlayAudioSource(source, data.clips[index]);
+        activeSources[name] = source;
     }
 
     public void StopSFX(string name)
     {
-        if (audioClips.TryGetValue(name, out AudioClipData data))
-        {
-            if (audioSources.TryGetValue(data.audioSourceName, out AudioSource source))
-            {
-                source.Stop();
-            }
-        }
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
+        if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
+        if (!activeSources.TryGetValue(name, out AudioSource source)) return;
+
+        pool.ResumeAudioSource(source);
+        source.Stop();
+        activeSources.Remove(name);
     }
 
     public void PauseSFX(string name)
     {
-        if (audioClips.TryGetValue(name, out AudioClipData data))
-        {
-            if (audioSources.TryGetValue(data.audioSourceName, out AudioSource source))
-            {
-                source.Pause();
-            }
-        }
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
+        if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
+        if (!activeSources.TryGetValue(name, out AudioSource source)) return;
+
+        pool.PauseAudioSource(source);
+    }
+
+    public void ResumeSFX(string name)
+    {
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
+        if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
+        if (!activeSources.TryGetValue(name, out AudioSource source)) return;
+
+        pool.ResumeAudioSource(source);
     }
 
     public bool IsPlaying(string name)
     {
-        if (audioClips.TryGetValue(name, out AudioClipData data))
-        {
-            if (audioSources.TryGetValue(data.audioSourceName, out AudioSource source))
-            {
-                return source.isPlaying;
-            }
-        }
-        return false;
+        return activeSources.TryGetValue(name, out AudioSource source) && source.isPlaying;
+    }
+
+    public bool IsPaused(string name)
+    {
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return false;
+        if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return false;
+        if (!activeSources.TryGetValue(name, out AudioSource source)) return false;
+
+        return pool.IsPaused(source);
     }
 }

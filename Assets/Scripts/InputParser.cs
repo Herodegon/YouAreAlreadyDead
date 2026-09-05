@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+
+using Random = UnityEngine.Random;
 
 public struct RelationshipData
 {
@@ -17,7 +20,7 @@ public struct RelationshipData
 public class InputParser : MonoBehaviour
 {
     [Header("Game Data")]
-    [SerializeField] private WillUI willInterface;
+    public WillUI willInterface;
     [SerializeField] private ObjectivesUI objectivesInterface;
     [SerializeField] private TextAsset namesFile;
     [SerializeField] private TextAsset belongingsFile;
@@ -25,6 +28,8 @@ public class InputParser : MonoBehaviour
     [Header("Game Settings")]
     [SerializeField] private int minRelationships = 1;
     [SerializeField] private int maxRelationships = 10;
+    [SerializeField] private float minTimeToNextRelationship = 3f;
+    [SerializeField] private float maxTimeToNextRelationship = 8f;
 
     private readonly List<string> names = new();
     private readonly List<string> belongings = new();
@@ -32,29 +37,44 @@ public class InputParser : MonoBehaviour
 
     private readonly List<ObjectiveData> pendingObjectiveTokens = new();
 
-    void Awake()
+    private float timeToNextRelationship = 0f;
+    private bool isTimerRunning = false;
+
+    void OnEnable()
     {
         names.AddRange(namesFile.text.Trim().Split('\n').ToList());
         belongings.AddRange(belongingsFile.text.Trim().Split('\n').ToList());
 
-        Debug.Log(names.Count);
-        Debug.Log(belongings.Count);
-
         willInterface.OnWillContentChanged += WillContentChanged;
+        objectivesInterface.ClearObjectives();
+
+        int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
+        GenerateRelationship(numberOfRelationships);
+
+        timeToNextRelationship = Random.Range(minTimeToNextRelationship, maxTimeToNextRelationship);
+        isTimerRunning = true;
     }
 
     void Update()
     {
-        if (objectivesInterface.objectives.Count == 0)
+        if (!isTimerRunning) return;
+        timeToNextRelationship -= Time.deltaTime;
+        if (timeToNextRelationship <= 0f)
         {
-            GenerateRelationships();
+            int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
+            GenerateRelationship(numberOfRelationships);
+            timeToNextRelationship = Random.Range(minTimeToNextRelationship, maxTimeToNextRelationship);
         }
     }
 
-    private void GenerateRelationships()
+    public void StopTimer()
+    {
+        isTimerRunning = false;
+    }
+
+    private void GenerateRelationship(int numberOfRelationships)
     {
         List<RelationshipData> relationships = new();
-        int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
         for (int i = 0; i < numberOfRelationships; i++)
         {
             string name = names[Random.Range(0, names.Count)];
@@ -70,7 +90,7 @@ public class InputParser : MonoBehaviour
         ResetObjectives();
         willSequence.Clear();
         willSequence.AddRange(value.ToLowerInvariant().Split(new[] { ' ', '\t', '\n', '\r', ',', '.', ';', ':', '"', '\'' },
-               System.StringSplitOptions.RemoveEmptyEntries));
+               StringSplitOptions.RemoveEmptyEntries));
         ParseWillContents();
     }
 

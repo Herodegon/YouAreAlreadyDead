@@ -67,5 +67,10 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "YouAreAlreadyDead.slnx"
+    "dotnet.defaultSolution": "YouAreAlreadyDead.slnx",
+    "dotrush.roslyn.projectOrSolutionFiles": [
+        "c:\\Users\\herod\\Documents\\Unity Projects\\YouAreAlreadyDead\\YouAreAlreadyDead.slnx",
+        "c:\\Users\\herod\\Documents\\Unity Projects\\YouAreAlreadyDead\\Assembly-CSharp.csproj",
+        "c:\\Users\\herod\\Documents\\Unity Projects\\YouAreAlreadyDead\\PrimeTween.Debug.csproj"
+    ]
 }
