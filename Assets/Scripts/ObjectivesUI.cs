@@ -6,7 +6,7 @@ public class ObjectivesUI : MonoBehaviour
     [SerializeField] private ObjectiveObject objectivePrefab;
     [SerializeField] private Transform objectivesContainer;
     [SerializeField] private Transform completedObjectivesContainer;
-
+    
     public List<ObjectiveObject> objectives = new();
 
     public void PopulateObjectives(List<RelationshipData> relationships)
@@ -19,6 +19,16 @@ public class ObjectivesUI : MonoBehaviour
             objective.OnObjectiveUncomplete += OnObjectiveUncomplete;
             objectives.Add(objective);
         }
+    }
+
+    public void HideObjectives()
+    {
+        objectivesContainer.gameObject.SetActive(false);
+    }
+
+    public void ShowObjectives()
+    {
+        objectivesContainer.gameObject.SetActive(true);
     }
 
     public void ClearObjectives()

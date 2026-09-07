@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-using Random = UnityEngine.Random;
-
 public struct RelationshipData
 {
     public string name;
@@ -19,69 +17,24 @@ public struct RelationshipData
 
 public class InputParser : MonoBehaviour
 {
-    [Header("Game Data")]
-    public WillUI willInterface;
-    [SerializeField] private ObjectivesUI objectivesInterface;
-    [SerializeField] private TextAsset namesFile;
-    [SerializeField] private TextAsset belongingsFile;
+    [SerializeField] private WillUI willUI;
+    [SerializeField] private ObjectivesUI objectivesUI;
 
-    [Header("Game Settings")]
-    [SerializeField] private int minRelationships = 1;
-    [SerializeField] private int maxRelationships = 10;
-    [SerializeField] private float minTimeToNextRelationship = 3f;
-    [SerializeField] private float maxTimeToNextRelationship = 8f;
-
-    private readonly List<string> names = new();
-    private readonly List<string> belongings = new();
     private readonly List<string> willSequence = new();
+    private readonly List<string> conjunctionTokens = new() { "and", "&" };
 
     private readonly List<ObjectiveData> pendingObjectiveTokens = new();
-
-    private float timeToNextRelationship = 0f;
-    private bool isTimerRunning = false;
+    private readonly (List<string> heirTokens, List<string> belongingTokens) clauseBuffer = (new(), new());
+    private readonly HashSet<(List<string> heirTokens, List<string> belongingTokens)> clauses = new();
 
     void OnEnable()
     {
-        names.AddRange(namesFile.text.Trim().Split('\n').ToList());
-        belongings.AddRange(belongingsFile.text.Trim().Split('\n').ToList());
-
-        willInterface.OnWillContentChanged += WillContentChanged;
-        objectivesInterface.ClearObjectives();
-
-        int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
-        GenerateRelationship(numberOfRelationships);
-
-        timeToNextRelationship = Random.Range(minTimeToNextRelationship, maxTimeToNextRelationship);
-        isTimerRunning = true;
+        willUI.OnWillContentChanged += WillContentChanged;
     }
 
-    void Update()
+    void OnDisable()
     {
-        if (!isTimerRunning) return;
-        timeToNextRelationship -= Time.deltaTime;
-        if (timeToNextRelationship <= 0f)
-        {
-            int numberOfRelationships = Random.Range(minRelationships, maxRelationships + 1);
-            GenerateRelationship(numberOfRelationships);
-            timeToNextRelationship = Random.Range(minTimeToNextRelationship, maxTimeToNextRelationship);
-        }
-    }
-
-    public void StopTimer()
-    {
-        isTimerRunning = false;
-    }
-
-    private void GenerateRelationship(int numberOfRelationships)
-    {
-        List<RelationshipData> relationships = new();
-        for (int i = 0; i < numberOfRelationships; i++)
-        {
-            string name = names[Random.Range(0, names.Count)];
-            string belonging = belongings[Random.Range(0, belongings.Count)];
-            relationships.Add(new RelationshipData(name, belonging));
-        }
-        objectivesInterface.PopulateObjectives(relationships);
+        willUI.OnWillContentChanged -= WillContentChanged;
     }
 
     private void WillContentChanged(string value)
@@ -96,7 +49,7 @@ public class InputParser : MonoBehaviour
 
     private void ResetObjectives()
     {
-        foreach (var objective in objectivesInterface.objectives)
+        foreach (var objective in objectivesUI.objectives)
         {
             objective.objectiveData.SetState(ObjectiveState.INCOMPLETE);
         }
@@ -106,9 +59,10 @@ public class InputParser : MonoBehaviour
     {
         for (int i = 0; i < willSequence.Count; i++)
         {
-            foreach (var objective in objectivesInterface.objectives)
+            foreach (var objective in objectivesUI.objectives)
             {
                 if (CheckForHeirToken(willSequence[i], objective.objectiveData)) break;
+                else if (CheckForConjunctionToken(willSequence[i])) break;
             }
             if (pendingObjectiveTokens.Count > 0) CheckForBelongingToken(i);
         }
@@ -119,7 +73,18 @@ public class InputParser : MonoBehaviour
         if (objectiveData.HeirTokens.Contains(token))
         {
             if (!pendingObjectiveTokens.Contains(objectiveData)) pendingObjectiveTokens.Add(objectiveData);
+            if (!clauseBuffer.heirTokens.Contains(token)) clauseBuffer.heirTokens.Add(token);
             objectiveData.SetState(ObjectiveState.PENDING);
+            return true;
+        }
+        return false;
+    }
+
+    private bool CheckForConjunctionToken(string token)
+    {
+        if (conjunctionTokens.Contains(token) && pendingObjectiveTokens.Count > 0)
+        {
+            clauseBuffer.heirTokens.Add(token);
             return true;
         }
         return false;
@@ -140,9 +105,14 @@ public class InputParser : MonoBehaviour
             pendingObjectiveTokens.RemoveAt(i);
             objectiveCompleted = true;
         }
+
+        // When at least one heir's condition is met, all other invalid pending heirs
+        // are marked as broken, and their clause must be restarted or rewritten.
         if (objectiveCompleted)
         {
             pendingObjectiveTokens.ForEach(objectiveData => objectiveData.SetState(ObjectiveState.BROKEN));
+            clauseBuffer.heirTokens.Clear();
+            clauseBuffer.belongingTokens.Clear();
         }
     }
 

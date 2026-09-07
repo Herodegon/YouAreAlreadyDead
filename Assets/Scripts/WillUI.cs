@@ -26,6 +26,7 @@ public class WillUI : MonoBehaviour
     {
         willInputField.onValueChanged.AddListener(OnValueChanged);
         willInputField.text = "";
+        willInputField.interactable = true;
     }
 
     void OnDisable()
@@ -35,7 +36,15 @@ public class WillUI : MonoBehaviour
 
     void Update()
     {
-        if (isInputLocked) return;
+        if (isInputLocked)
+        {
+            if (willInputField.interactable)
+            {
+                willInputField.interactable = false;
+            }
+            return;
+        }
+        
         if (!willInputField.isFocused) 
         {
             willInputField.Select();

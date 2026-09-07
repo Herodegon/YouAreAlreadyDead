@@ -42,6 +42,13 @@ public class Timer : MonoBehaviour
         .OnComplete(() => OnTimerComplete?.Invoke());
     }
 
+    public void ResetTimer()
+    {
+        timer = 0f;
+        tollCount = 0;
+        scrollTransform.position = startPoint.position;
+    }
+
     private void BellTollStateMachine()
     {
         switch (tollCount)
@@ -59,12 +66,5 @@ public class Timer : MonoBehaviour
             default:
                 break;
         }
-    }
-
-    private void ResetTimer()
-    {
-        timer = 0f;
-        tollCount = 0;
-        scrollTransform.position = startPoint.position;
     }
 }

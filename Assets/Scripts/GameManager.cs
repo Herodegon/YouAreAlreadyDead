@@ -9,8 +9,6 @@ public class GameManager : MonoBehaviour
     [Header("Game Screens")]
     [SerializeField] private GameObject startScreen;
     [SerializeField] private GameObject gameScreen;
-    [SerializeField] private GameObject endScreen;
-    [SerializeField] private GameObject inputParser;
 
     [Header("Game Settings")]
     [SerializeField] private float gameDuration = 45f;
@@ -21,23 +19,19 @@ public class GameManager : MonoBehaviour
     {
         screens.Add(startScreen);
         screens.Add(gameScreen);
-        screens.Add(endScreen);
 
         startScreen.GetComponent<StartScreen>().OnPlayGame += OnGameStart;
         startScreen.GetComponent<StartScreen>().OnQuitGame += OnGameQuit;
 
-        inputParser.SetActive(false);
         SelectScreen(startScreen);
     }
 
     private void OnGameStart()
     {
-        inputParser.SetActive(true);
-        inputParser.GetComponent<WillUI>().isInputLocked = false;
         SelectScreen(gameScreen);
 
         Timer.Instance.OnTimerComplete += OnGameEnd;
-        Timer.Instance.OnTimerComplete += inputParser.GetComponent<InputParser>().StopTimer;
+        Timer.Instance.OnTimerComplete += gameScreen.GetComponent<GameScreen>().StopTimer;
 
         Timer.Instance.SetTimer(gameDuration);
         Background.Instance.FadeIn(gameDuration);
@@ -46,13 +40,10 @@ public class GameManager : MonoBehaviour
     private void OnGameEnd()
     {
         Timer.Instance.OnTimerComplete -= OnGameEnd;
-        Timer.Instance.OnTimerComplete -= inputParser.GetComponent<InputParser>().StopTimer;
-        inputParser.GetComponent<WillUI>().isInputLocked = true;
+        Timer.Instance.OnTimerComplete -= gameScreen.GetComponent<GameScreen>().StopTimer;
 
         AudioBus.Instance.PlaySFX("bell_toll");
         Background.Instance.Flash(0.5f);
-
-        SelectScreen(endScreen);
     }
 
     private void OnGameQuit()
