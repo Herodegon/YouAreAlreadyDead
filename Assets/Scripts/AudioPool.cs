@@ -29,13 +29,22 @@ public class AudioPool : MonoBehaviour
         return source.GetComponent<AudioSource>();
     }
 
-    public void PlayAudioSource(AudioSource source, AudioClip clip)
+    public void PlayAudioSource(AudioSource source, AudioClip clip, bool loop = false, float delay = 0f)
     {
         source.gameObject.SetActive(true);
         source.transform.SetParent(activeContainer, false);
         source.clip = clip;
-        source.Play();
-        StartCoroutine(ReleaseRoutine(source));
+        source.loop = loop;
+        if (delay <= 0f)
+        {
+            source.Play();
+        }
+        else
+        {
+            // PlayScheduled works in absolute audio engine time, not offsets.
+            source.PlayScheduled(AudioSettings.dspTime + delay);
+        }
+        StartCoroutine(ReleaseRoutine(source, delay));
     }
 
     public void PauseAudioSource(AudioSource source)
@@ -56,11 +65,18 @@ public class AudioPool : MonoBehaviour
         return source != null && pausedSources.Contains(source);
     }
 
-    private IEnumerator ReleaseRoutine(AudioSource source)
+    private IEnumerator ReleaseRoutine(AudioSource source, float delay)
     {
+        // Don't poll isPlaying until the scheduled start has passed, or the
+        // source gets recycled out from under the pending playback.
+        if (delay > 0f) yield return new WaitForSeconds(delay);
         yield return null;
         yield return new WaitWhile(() => source.isPlaying || pausedSources.Contains(source));
+        ReleaseAudioSource(source);
+    }
 
+    private void ReleaseAudioSource(AudioSource source)
+    {
         pausedSources.Remove(source);
         source.Stop();
         source.clip = null;

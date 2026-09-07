@@ -41,9 +41,6 @@ public class GameManager : MonoBehaviour
     {
         Timer.Instance.OnTimerComplete -= OnGameEnd;
         Timer.Instance.OnTimerComplete -= gameScreen.GetComponent<GameScreen>().StopTimer;
-
-        AudioBus.Instance.PlaySFX("bell_toll");
-        Background.Instance.Flash(0.5f);
     }
 
     private void OnGameQuit()

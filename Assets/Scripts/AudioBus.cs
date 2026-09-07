@@ -21,6 +21,7 @@ public class AudioClipValue
 public class AudioClipData
 {
     public string audioSourceName;
+    public bool loop = false;
     public float volume;
     public float pitch;
     public float pitchVariance;
@@ -68,12 +69,14 @@ public class AudioBus : MonoBehaviour
         }
     }
 
-    public void PlaySFX(string name)
+    public void PlaySFX(string name, float delay = 0f) 
     {
         if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
         if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
 
-        if (activeSources.TryGetValue(name, out AudioSource active))
+        // Only looping sounds are single-instance. One-shots have to be able to
+        // overlap, otherwise a second scheduled copy gets swallowed here.
+        if (data.loop && activeSources.TryGetValue(name, out AudioSource active))
         {
             pool.ResumeAudioSource(active);
             return;
@@ -85,7 +88,7 @@ public class AudioBus : MonoBehaviour
         int index = Random.Range(0, data.clips.Count);
         source.volume = data.volume;
         source.pitch = data.pitch + Random.Range(-data.pitchVariance, data.pitchVariance);
-        pool.PlayAudioSource(source, data.clips[index]);
+        pool.PlayAudioSource(source, data.clips[index], data.loop, delay);
         activeSources[name] = source;
     }
 
@@ -130,5 +133,11 @@ public class AudioBus : MonoBehaviour
         if (!activeSources.TryGetValue(name, out AudioSource source)) return false;
 
         return pool.IsPaused(source);
+    }
+
+    public float GetClipLength(string name)
+    {
+        if (!audioClips.TryGetValue(name, out AudioClipData data)) return 0f;
+        return data.clips[0].length;
     }
 }

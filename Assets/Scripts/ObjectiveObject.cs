@@ -13,14 +13,14 @@ public enum ObjectiveState
 
 public sealed class ObjectiveData
 {
-    public string[] HeirTokens { get; }
-    public string[] BelongingTokens { get; }
-    public ObjectiveState State { get; private set; }
     public ObjectiveData(RelationshipData relationship)
     {
         HeirTokens = Tokenize(relationship.name);
         BelongingTokens = Tokenize(relationship.belonging);
     }
+    public string[] HeirTokens { get; }
+    public string[] BelongingTokens { get; }
+    public ObjectiveState State { get; private set; }
     public void SetState(ObjectiveState state) => State = state;
     public static string[] Tokenize(string text) => text
         .ToLowerInvariant()

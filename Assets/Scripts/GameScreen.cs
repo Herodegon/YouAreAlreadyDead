@@ -16,6 +16,8 @@ public class GameScreen : MonoBehaviour
     [SerializeField] private int maxRelationships = 10;
     [SerializeField] private float minTimeToNextRelationship = 3f;
     [SerializeField] private float maxTimeToNextRelationship = 8f;
+    [SerializeField] private float percentageNameReuse = 0.1f;
+    [SerializeField] private float percentageBelongingReuse = 0.35f;
 
     private InputParser inputParser;
     private WillUI willUI;
@@ -23,6 +25,8 @@ public class GameScreen : MonoBehaviour
 
     private readonly List<string> names = new();
     private readonly List<string> belongings = new();
+    private string previousName = "";
+    private string previousBelonging = "";
 
     private readonly ScoreCalculator scoreCalculator = new();
 
@@ -34,13 +38,13 @@ public class GameScreen : MonoBehaviour
         inputParser = parserObject.GetComponent<InputParser>();
         willUI = willInterface.GetComponent<WillUI>();
         objectivesUI = objectivesInterface.GetComponent<ObjectivesUI>();
+
+        names.AddRange(namesFile.text.Trim().Split('\n').ToList());
+        belongings.AddRange(belongingsFile.text.Trim().Split('\n').ToList());
     }
 
     void OnEnable()
     {
-        names.AddRange(namesFile.text.Trim().Split('\n').ToList());
-        belongings.AddRange(belongingsFile.text.Trim().Split('\n').ToList());
-
         objectivesUI.ClearObjectives();
         willUI.isInputLocked = false;
 
@@ -69,6 +73,8 @@ public class GameScreen : MonoBehaviour
         isTimerRunning = false;
         willUI.isInputLocked = true;
         objectivesUI.HideObjectives();
+        // Prevent sfx from getting stuck after game is over
+        AudioBus.Instance.StopSFX("pencil_on_paper");
     }
 
     private void GenerateRelationships(int numberOfRelationships)
@@ -76,9 +82,21 @@ public class GameScreen : MonoBehaviour
         List<RelationshipData> relationships = new();
         for (int i = 0; i < numberOfRelationships; i++)
         {
-            string name = names[Random.Range(0, names.Count)];
-            string belonging = belongings[Random.Range(0, belongings.Count)];
+            string name = previousName;
+            if (Random.value > percentageNameReuse || previousName == "")
+            {
+                name = names[Random.Range(0, names.Count)];
+            }
+
+            string belonging = previousBelonging;
+            if (Random.value > percentageBelongingReuse || previousBelonging == "")
+            {
+                belonging = belongings[Random.Range(0, belongings.Count)];
+            }
+
             relationships.Add(new RelationshipData(name, belonging));
+            previousName = name;
+            previousBelonging = belonging;
         }
         objectivesUI.PopulateObjectives(relationships);
     }

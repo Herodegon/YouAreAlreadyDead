@@ -14,7 +14,6 @@ public class Timer : MonoBehaviour
     public event Action OnTimerComplete;
 
     private float timer;
-    private int tollCount;
     private Tween scrollTween;
 
     void Awake()
@@ -30,7 +29,6 @@ public class Timer : MonoBehaviour
     void Update()
     {
         if (timer > 0f) timer -= Time.deltaTime;
-        BellTollStateMachine();
     }
 
     public void SetTimer(float duration)
@@ -38,33 +36,24 @@ public class Timer : MonoBehaviour
         if (scrollTween.isAlive) scrollTween.Complete();
         ResetTimer();
         timer = duration;
+        float tickLength = AudioBus.Instance.GetClipLength("clock_ticking");
+        float delay = duration % tickLength;
+        AudioBus.Instance.PlaySFX("clock_ticking", delay);
+        AudioBus.Instance.PlaySFX("bell_toll", duration - tickLength);
+        AudioBus.Instance.PlaySFX("bell_toll", duration - tickLength*2f);
+
         scrollTween = Tween.PositionY(scrollTransform, endPoint.position.y, duration, ease: Ease.Linear)
-        .OnComplete(() => OnTimerComplete?.Invoke());
+        .OnComplete(() => {
+            AudioBus.Instance.PlaySFX("bell_toll");
+            AudioBus.Instance.StopSFX("clock_ticking");
+            Background.Instance.Flash(0.5f);
+            OnTimerComplete?.Invoke();
+        });
     }
 
     public void ResetTimer()
     {
         timer = 0f;
-        tollCount = 0;
         scrollTransform.position = startPoint.position;
-    }
-
-    private void BellTollStateMachine()
-    {
-        switch (tollCount)
-        {
-            case 0:
-                if (timer > 10f) return;
-                AudioBus.Instance.PlaySFX("bell_toll");
-                tollCount++;
-                break;
-            case 1:
-                if (timer > 5f) return;
-                AudioBus.Instance.PlaySFX("bell_toll");
-                tollCount++;
-                break;
-            default:
-                break;
-        }
     }
 }

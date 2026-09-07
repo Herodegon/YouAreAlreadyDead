@@ -31,13 +31,33 @@ public readonly struct ScoreRule_Conjunction : IScoreRule
         int heirIndex = 0;
         while (heirIndex < heirTokens.Count - 2)
         {
-            if (conjunctionTokens.Contains(heirTokens[heirIndex + 1]) && heirTokens[heirIndex] != heirTokens[heirIndex + 2])
+            if (conjunctionTokens.Contains(heirTokens[heirIndex + 1]) 
+                && heirTokens[heirIndex] != heirTokens[heirIndex + 2])
             {
-                score += 75;
+                score += 100;
             }
             heirIndex += 2;
         }
         return score;
+    }
+}
+
+public readonly struct ScoreRule_Punctuation : IScoreRule
+{
+    private readonly List<string> punctuationTokens;
+
+    public ScoreRule_Punctuation(List<string> punctuationTokens)
+    {
+        this.punctuationTokens = punctuationTokens;
+    }
+
+    public readonly int ApplyRule(List<string> heirTokens, List<string> belongingTokens)
+    {
+        if (punctuationTokens.Contains(belongingTokens[^1]))
+        {
+            return 25;
+        }
+        return 0;
     }
 }
 
@@ -47,7 +67,10 @@ public class ScoreCalculator
     {
         new ScoreRule_ObjectiveCompleted(),
         new ScoreRule_Conjunction(new List<string> { "and", "&" }),
+        new ScoreRule_Punctuation(new List<string> { ".", "!", "?", "," }),
     };
+
+    public List<(List<string> heirTokens, List<string> belongingTokens)> Clauses => clauses;
 
     private readonly List<(List<string> heirTokens, List<string> belongingTokens)> clauses = new();
 
@@ -64,6 +87,11 @@ public class ScoreCalculator
     public void AddClause(List<string> heirTokens, List<string> belongingTokens)
     {
         clauses.Add((heirTokens, belongingTokens));
+    }
+
+    public void AddClauseList(List<(List<string> heirTokens, List<string> belongingTokens)> newClauses)
+    {
+        clauses.AddRange(newClauses);
     }
 
     public void ClearClauses()
