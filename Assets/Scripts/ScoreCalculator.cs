@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 public interface IScoreRule
 {
@@ -63,6 +64,8 @@ public readonly struct ScoreRule_Punctuation : IScoreRule
 
 public class ScoreCalculator
 {
+    [SerializeField] private ScoreTextObject scoreTextPrefab;
+
     private readonly List<IScoreRule> rules = new()
     {
         new ScoreRule_ObjectiveCompleted(),

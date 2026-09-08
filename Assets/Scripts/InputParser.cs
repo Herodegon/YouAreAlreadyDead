@@ -29,6 +29,8 @@ public class InputParser : MonoBehaviour
     private readonly (List<string> heirTokens, List<string> belongingTokens) clauseBuffer = (new(), new());
     private readonly List<(List<string> heirTokens, List<string> belongingTokens)> clauses = new();
 
+    public event Action<List<(List<string> heirTokens, List<string> belongingTokens)>> OnClausesChanged;
+
     void OnEnable()
     {
         willUI.OnWillContentChanged += WillContentChanged;
@@ -115,6 +117,8 @@ public class InputParser : MonoBehaviour
         {
             pendingObjectiveTokens.ForEach(objectiveData => objectiveData.SetState(ObjectiveState.BROKEN));
             clauses.Add((new List<string>(clauseBuffer.heirTokens), new List<string>(clauseBuffer.belongingTokens)));
+            Debug.Log($"Added clause: {string.Join(" ", clauseBuffer.heirTokens)} {string.Join(" ", clauseBuffer.belongingTokens)}");
+            OnClausesChanged?.Invoke(clauses);
             pendingObjectiveTokens.Clear();
             clauseBuffer.heirTokens.Clear();
             clauseBuffer.belongingTokens.Clear();
