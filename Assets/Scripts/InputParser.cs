@@ -83,6 +83,7 @@ public class InputParser : MonoBehaviour
             if (!pendingObjectiveTokens.Contains(objectiveData)) pendingObjectiveTokens.Add(objectiveData);
             if (!clauseBuffer.heirTokens.Contains(token)) clauseBuffer.heirTokens.Add(token);
             objectiveData.SetState(ObjectiveState.PENDING);
+            Debug.Log($"Added heir token: {token} to objective: {objectiveData.HeirTokens}");
         }
     }
 
@@ -99,6 +100,8 @@ public class InputParser : MonoBehaviour
     private void CheckForBelongingToken(int fromIndex)
     {
         bool objectiveCompleted = false;
+        string recentlyCompletedHeirToken = string.Empty;
+        List<ObjectiveData> restoredObjectives = new();
         for (int i = pendingObjectiveTokens.Count - 1; i >= 0; i--)
         {
             ObjectiveData objectiveData = pendingObjectiveTokens[i];
@@ -107,6 +110,7 @@ public class InputParser : MonoBehaviour
             if (!clauseBuffer.belongingTokens.Contains(objectiveData.BelongingTokens[0]))
                 clauseBuffer.belongingTokens.AddRange(objectiveData.BelongingTokens);
             objectiveData.SetState(ObjectiveState.COMPLETE);
+            recentlyCompletedHeirToken = objectiveData.HeirTokens[0];
             pendingObjectiveTokens.RemoveAt(i);
             objectiveCompleted = true;
         }
@@ -115,13 +119,26 @@ public class InputParser : MonoBehaviour
         // are marked as broken, and their clause must be restarted or rewritten.
         if (objectiveCompleted)
         {
-            pendingObjectiveTokens.ForEach(objectiveData => objectiveData.SetState(ObjectiveState.BROKEN));
+            pendingObjectiveTokens.ForEach(objectiveData => {
+                // If objective has same heir but a different belonging, it will be restored to
+                // pending list so the objective can be completed without having to rewrite heir name
+                if (objectiveData.HeirTokens[0] == recentlyCompletedHeirToken) 
+                {
+                    restoredObjectives.Add(objectiveData);
+                }
+                else
+                {
+                    objectiveData.SetState(ObjectiveState.BROKEN);
+                }
+            });
             clauses.Add((new List<string>(clauseBuffer.heirTokens), new List<string>(clauseBuffer.belongingTokens)));
-            Debug.Log($"Added clause: {string.Join(" ", clauseBuffer.heirTokens)} {string.Join(" ", clauseBuffer.belongingTokens)}");
             OnClausesChanged?.Invoke(clauses);
             pendingObjectiveTokens.Clear();
             clauseBuffer.heirTokens.Clear();
             clauseBuffer.belongingTokens.Clear();
+
+            // Restore objectives with same heir token but with different belonging tokens
+            pendingObjectiveTokens.AddRange(restoredObjectives);
         }
     }
 

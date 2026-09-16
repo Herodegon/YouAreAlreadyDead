@@ -38,9 +38,9 @@ public class Timer : MonoBehaviour
         timer = duration;
         float tickLength = AudioBus.Instance.GetClipLength("clock_ticking");
         float delay = duration % tickLength;
-        AudioBus.Instance.PlaySFX("clock_ticking", delay);
-        AudioBus.Instance.PlaySFX("bell_toll", duration - tickLength);
-        AudioBus.Instance.PlaySFX("bell_toll", duration - tickLength*2f);
+        AudioBus.Instance.PlaySFX("clock_ticking", delay: delay);
+        AudioBus.Instance.PlaySFX("bell_toll", delay: duration - tickLength);
+        AudioBus.Instance.PlaySFX("bell_toll", delay: duration - tickLength*2f);
 
         scrollTween = Tween.PositionY(scrollTransform, endPoint.position.y, duration, ease: Ease.Linear)
         .OnComplete(() => {

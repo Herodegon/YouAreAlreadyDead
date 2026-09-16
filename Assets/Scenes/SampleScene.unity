@@ -2499,7 +2499,7 @@ MonoBehaviour:
   maxRelationships: 3
   minTimeToNextRelationship: 4
   maxTimeToNextRelationship: 7
-  percentageNameReuse: 0.5
+  percentageNameReuse: 0.05
   percentageBelongingReuse: 0.1
 --- !u!114 &1290891937
 MonoBehaviour:
@@ -3920,7 +3920,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1801031547
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4049,7 +4049,7 @@ MonoBehaviour:
   mainCamera: {fileID: 519420031}
   startScreen: {fileID: 2099985122}
   gameScreen: {fileID: 1289331663}
-  gameDuration: 15
+  gameDuration: 28
 --- !u!4 &2032360667
 Transform:
   m_ObjectHideFlags: 0

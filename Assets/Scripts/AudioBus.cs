@@ -69,14 +69,14 @@ public class AudioBus : MonoBehaviour
         }
     }
 
-    public void PlaySFX(string name, float delay = 0f) 
+    public void PlaySFX(string name, bool canOverlap = false, float delay = 0f) 
     {
         if (!audioClips.TryGetValue(name, out AudioClipData data)) return;
         if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) return;
 
         // Only looping sounds are single-instance. One-shots have to be able to
         // overlap, otherwise a second scheduled copy gets swallowed here.
-        if (data.loop && activeSources.TryGetValue(name, out AudioSource active))
+        if ((data.loop || canOverlap) && activeSources.TryGetValue(name, out AudioSource active))
         {
             pool.ResumeAudioSource(active);
             return;

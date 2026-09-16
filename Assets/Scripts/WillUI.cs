@@ -58,7 +58,7 @@ public class WillUI : MonoBehaviour
     private void OnValueChanged(string value)
     {
         if (isInputLocked) return;
-        AudioBus.Instance.PlaySFX("pencil_on_paper");
+        AudioBus.Instance.PlaySFX("pencil_on_paper", canOverlap: true);
         inputDelayTimer = Time.time + inputDelay;
         ShakeText();
         OnWillContentChanged?.Invoke(value);
