@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public interface IScoreRule
 {
@@ -10,7 +9,7 @@ public readonly struct ScoreRule_ObjectiveCompleted : IScoreRule
 {
     public readonly int ApplyRule(List<string> heirTokens, List<string> belongingTokens)
     {
-        int bonus = (belongingTokens.Count) * 25;
+        int bonus = belongingTokens.Count * 25;
         return 100 + bonus;
     }
 }
@@ -26,18 +25,25 @@ public readonly struct ScoreRule_Conjunction : IScoreRule
 
     public readonly int ApplyRule(List<string> heirTokens, List<string> belongingTokens)
     {
-        if (heirTokens.Count < 3) return 0;
+        if (heirTokens.Count < 3 && belongingTokens.Count < 3) return 0;
 
+        int totalScore = 0;
+        totalScore += EvaluateConjunctionScore(heirTokens);
+        totalScore += EvaluateConjunctionScore(belongingTokens);
+        return totalScore;
+    }
+
+    private int EvaluateConjunctionScore(List<string> tokens)
+    {
         int score = 0;
-        int heirIndex = 0;
-        while (heirIndex < heirTokens.Count - 2)
+        int index = 0;
+        while (index < tokens.Count - 2)
         {
-            if (conjunctionTokens.Contains(heirTokens[heirIndex + 1]) 
-                && heirTokens[heirIndex] != heirTokens[heirIndex + 2])
+            if (conjunctionTokens.Contains(tokens[index + 1]) && tokens[index] != tokens[index + 2])
             {
                 score += 100;
             }
-            heirIndex += 2;
+            index += 2;
         }
         return score;
     }
@@ -64,8 +70,6 @@ public readonly struct ScoreRule_Punctuation : IScoreRule
 
 public class ScoreCalculator
 {
-    [SerializeField] private ScoreTextObject scoreTextPrefab;
-
     private readonly List<IScoreRule> rules = new()
     {
         new ScoreRule_ObjectiveCompleted(),

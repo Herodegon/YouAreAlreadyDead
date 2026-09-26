@@ -1,11 +1,13 @@
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using PrimeTweenDemo;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private Camera mainCamera;
 
+    [Header("Camera")]
+    [SerializeField] private CameraController cameraController;
+    
     [Header("Game Screens")]
     [SerializeField] private GameObject startScreen;
     [SerializeField] private GameObject gameScreen;
@@ -28,6 +30,7 @@ public class GameManager : MonoBehaviour
 
     private void OnGameStart()
     {
+        // Note: Will lock player's input to will UI until game ends
         SelectScreen(gameScreen);
 
         Timer.Instance.OnTimerComplete += OnGameEnd;

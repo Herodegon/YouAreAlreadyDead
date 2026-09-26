@@ -121,6 +121,26 @@ public class AudioBus : MonoBehaviour
         pool.ResumeAudioSource(source);
     }
 
+    public void PauseAllSFX()
+    {
+        foreach (var pair in activeSources)
+        {
+            if (!audioClips.TryGetValue(pair.Key, out AudioClipData data)) continue;
+            if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) continue;
+            pool.PauseAudioSource(pair.Value);
+        }
+    }
+
+    public void ResumeAllSFX()
+    {
+        foreach (var pair in activeSources)
+        {
+            if (!audioClips.TryGetValue(pair.Key, out AudioClipData data)) continue;
+            if (!audioPools.TryGetValue(data.audioSourceName, out AudioPool pool)) continue;
+            pool.ResumeAudioSource(pair.Value);
+        }
+    }
+
     public bool IsPlaying(string name)
     {
         return activeSources.TryGetValue(name, out AudioSource source) && source.isPlaying;

@@ -89,7 +89,7 @@ public class GameScreen : MonoBehaviour
             }
 
             string belonging = previousBelonging;
-            if (Random.value > percentageBelongingReuse || previousBelonging == "")
+            if (name == previousName || Random.value > percentageBelongingReuse || previousBelonging == "")
             {
                 belonging = belongings[Random.Range(0, belongings.Count)];
             }

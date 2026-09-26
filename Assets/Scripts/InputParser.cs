@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using System;
 
 public struct RelationshipData
@@ -19,11 +18,24 @@ public class InputParser : MonoBehaviour
 {
     [SerializeField] private WillUI willUI;
     [SerializeField] private ObjectivesUI objectivesUI;
+    [SerializeField] private float parseInterval = 0.05f;
 
     public List<(List<string> heirTokens, List<string> belongingTokens)> Clauses => clauses;
 
+    private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\n', '\r' };
+
     private readonly List<string> willSequence = new();
     private readonly List<string> conjunctionTokens = new() { "and", "&" };
+    private readonly List<string> punctuationTokens = new() { ".", "!", "?", "," };
+
+    // Maps a heir token to every objective that accepts it, so parsing costs one
+    // lookup per token instead of a scan across the whole objective list.
+    private readonly Dictionary<string, List<ObjectiveData>> heirIndex = new();
+    private int indexedObjectivesVersion = -1;
+
+    private string pendingValue;
+    private bool isParsePending;
+    private float nextParseTime;
 
     private readonly List<ObjectiveData> pendingObjectiveTokens = new();
     private readonly (List<string> heirTokens, List<string> belongingTokens) clauseBuffer = (new(), new());
@@ -39,9 +51,54 @@ public class InputParser : MonoBehaviour
     void OnDisable()
     {
         willUI.OnWillContentChanged -= WillContentChanged;
+        // Don't let a debounced edit get dropped on the way out.
+        if (isParsePending) ParsePendingValue();
     }
 
+    void LateUpdate()
+    {
+        if (!isParsePending || Time.unscaledTime < nextParseTime) return;
+        ParsePendingValue();
+    }
+
+    // Typing faster than parseInterval coalesces into a single parse. An edit after
+    // an idle gap still parses on the same frame, since nextParseTime is already past.
     private void WillContentChanged(string value)
+    {
+        pendingValue = value;
+        isParsePending = true;
+    }
+
+    private void ParsePendingValue()
+    {
+        isParsePending = false;
+        nextParseTime = Time.unscaledTime + parseInterval;
+
+        RebuildHeirIndexIfNeeded();
+        ParseValue(pendingValue);
+    }
+
+    private void RebuildHeirIndexIfNeeded()
+    {
+        if (indexedObjectivesVersion == objectivesUI.Version) return;
+        indexedObjectivesVersion = objectivesUI.Version;
+
+        heirIndex.Clear();
+        foreach (var objective in objectivesUI.objectives)
+        {
+            foreach (string heirToken in objective.objectiveData.HeirTokens)
+            {
+                if (!heirIndex.TryGetValue(heirToken, out var matches))
+                {
+                    matches = new List<ObjectiveData>();
+                    heirIndex[heirToken] = matches;
+                }
+                matches.Add(objective.objectiveData);
+            }
+        }
+    }
+
+    private void ParseValue(string value)
     {
         pendingObjectiveTokens.Clear();
         clauses.Clear();
@@ -49,9 +106,23 @@ public class InputParser : MonoBehaviour
         clauseBuffer.belongingTokens.Clear();
         ResetObjectives();
         willSequence.Clear();
-        willSequence.AddRange(value.ToLowerInvariant().Split(new[] { ' ', '\t', '\n', '\r', ',', '.', ';', ':', '"', '\'' },
-               StringSplitOptions.RemoveEmptyEntries));
+        foreach (string word in value.ToLowerInvariant()
+            .Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries))
+        {
+            AddWordTokens(word);
+        }
         ParseWillContents();
+    }
+
+    // Trailing punctuation becomes its own token so the parser can treat it as a
+    // clause terminator: "sword!?" -> "sword", "!", "?"
+    private void AddWordTokens(string word)
+    {
+        int end = word.Length;
+        while (end > 0 && punctuationTokens.Contains(word[end - 1].ToString())) end--;
+
+        if (end > 0) willSequence.Add(word[..end]);
+        for (int i = end; i < word.Length; i++) willSequence.Add(word[i].ToString());
     }
 
     private void ResetObjectives()
@@ -66,32 +137,72 @@ public class InputParser : MonoBehaviour
     {
         for (int i = 0; i < willSequence.Count; i++)
         {
-            foreach (var objective in objectivesUI.objectives)
+            // Order of Operations: Heir -> (Conjunction -> Heir -> ...) -> Belonging -> Punctuation
+            // Any rule token (conjunction, punctuation, etc.) processed after heir but before belonging will be added
+            // to the heir token buffer. Any rule token processed after belonging will be added to the belonging token buffer.
+            if (heirIndex.TryGetValue(willSequence[i], out var heirMatches))
             {
-                CheckForHeirToken(willSequence[i], objective.objectiveData);
+                foreach (var objectiveData in heirMatches)
+                {
+                    CheckForHeirToken(willSequence[i], objectiveData);
+                }
             }
+
             if (CheckForConjunctionToken(willSequence[i])) continue;
+            if (clauseBuffer.belongingTokens.Count > 0)
+            {
+                if (CheckForPunctuationToken(willSequence[i])) continue;
+                AddClause(clauseBuffer.heirTokens, clauseBuffer.belongingTokens);
+            }
             if (pendingObjectiveTokens.Count > 0) CheckForBelongingToken(i);
         }
+        // If no tokens remain after parsing a belonging, add the clause to the list
+        if (clauseBuffer.belongingTokens.Count > 0)
+        {
+            AddClause(clauseBuffer.heirTokens, clauseBuffer.belongingTokens);
+        }
+        OnClausesChanged?.Invoke(clauses);
     }
 
+    private void AddClause(List<string> heirTokens, List<string> belongingTokens)
+    {
+        clauses.Add((new List<string>(heirTokens), new List<string>(belongingTokens)));
+        clauseBuffer.heirTokens.Clear();
+        clauseBuffer.belongingTokens.Clear();
+    }
+
+    // Callers resolve the objective through heirIndex, so reaching here already
+    // proves the token is one of this objective's heir tokens.
     private void CheckForHeirToken(string token, ObjectiveData objectiveData)
     {
         if (objectiveData.State == ObjectiveState.COMPLETE) return;
-        if (objectiveData.HeirTokens.Contains(token))
-        {
-            if (!pendingObjectiveTokens.Contains(objectiveData)) pendingObjectiveTokens.Add(objectiveData);
-            if (!clauseBuffer.heirTokens.Contains(token)) clauseBuffer.heirTokens.Add(token);
-            objectiveData.SetState(ObjectiveState.PENDING);
-            Debug.Log($"Added heir token: {token} to objective: {objectiveData.HeirTokens}");
-        }
+        if (!pendingObjectiveTokens.Contains(objectiveData)) pendingObjectiveTokens.Add(objectiveData);
+        if (!clauseBuffer.heirTokens.Contains(token)) clauseBuffer.heirTokens.Add(token);
+        objectiveData.SetState(ObjectiveState.PENDING);
     }
 
     private bool CheckForConjunctionToken(string token)
     {
         if (conjunctionTokens.Contains(token) && pendingObjectiveTokens.Count > 0)
         {
-            clauseBuffer.heirTokens.Add(token);
+            if (clauseBuffer.belongingTokens.Count > 0)
+            {
+                clauseBuffer.belongingTokens.Add(token);
+            }
+            else
+            {
+                clauseBuffer.heirTokens.Add(token);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private bool CheckForPunctuationToken(string token)
+    {
+        if (punctuationTokens.Contains(token) && pendingObjectiveTokens.Count > 0)
+        {
+            clauseBuffer.belongingTokens.Add(token);
             return true;
         }
         return false;
@@ -131,11 +242,7 @@ public class InputParser : MonoBehaviour
                     objectiveData.SetState(ObjectiveState.BROKEN);
                 }
             });
-            clauses.Add((new List<string>(clauseBuffer.heirTokens), new List<string>(clauseBuffer.belongingTokens)));
-            OnClausesChanged?.Invoke(clauses);
             pendingObjectiveTokens.Clear();
-            clauseBuffer.heirTokens.Clear();
-            clauseBuffer.belongingTokens.Clear();
 
             // Restore objectives with same heir token but with different belonging tokens
             pendingObjectiveTokens.AddRange(restoredObjectives);
